@@ -1,5 +1,6 @@
 from selene import browser, have
 
+
 # python -m venv venv
 # Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # venv\Scripts\activate
@@ -28,7 +29,7 @@ from selene import browser, have
 # 2. Активация (Для Windows)
 # venv\Scripts\activate
 # 2. Активация (Для macOS/Linux)
-#source venv/bin/activate
+# source venv/bin/activate
 
 # В случае возникновения проблем может пригодиться
 # pip install --force-reinstall selene==2.0.0rc9 --pre
@@ -43,5 +44,5 @@ def test_google_search():
     # 3. Проверяем, что на странице результатов есть ссылка на GitHub
     browser.element('#search').should(have.text('yashaka/selene'))
 
-test_google_search()
 
+test_google_search()
