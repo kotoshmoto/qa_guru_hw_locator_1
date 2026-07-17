@@ -2,7 +2,7 @@
 
 # Задача: "Разработать на языке Python и библиотеке Selenium как можно больше позитивных и негативных тестовых сценариев используя подход DDT для формы логина https://qa-guru.github.io/one-page-form/login.html"
 # Для реализации тестирования формы авторизации по методу DDT (Data-Driven Testing) на Python лучше всего использовать связку фреймворка pytest
-#(через встроенную параметризацию @pytest.mark.parametrize) и библиотеки Selenium WebDriver.
+# (через встроенную параметризацию @pytest.mark.parametrize) и библиотеки Selenium WebDriver.
 # Ниже представлена подборка тестовых сценариев и готовый скрипт, автоматизирующий проверку страницы https://qa-guru.github.io/one-page-form/login.html .
 # Спроектированные тестовые сценарии (DDT-матрица)В качестве валидных учетных данных (ожидаемое поведение тестового стенда QA.GURU)
 # принята стандартная пара: email qaguru@qa.guru и любой непустой пароль (или специфичный qaguru),
@@ -17,18 +17,17 @@
 # Email без коммерческого атта @: Нарушение базового синтаксиса почты (qaguruqa.guru).Email без доменной части: Строка вида qaguru@.Email без имени ящика: Строка вида @qa.guru.
 # Спецсимволы в Email: Использование запрещенных символов (qaguru!#$@qa.guru).Длинный пароль/Email (XSS/SQL-инъекции): Базовый чек на устойчивость к инъекциям (' OR '1'='1).
 
+import pytest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import pytest
 
-from generators.login_form_fields_g import g_get_valid_params
+from generators.login_form_fields_g import g_get_valid_params, g_get_invalid_params
+from helpers.login_form_h import get_result_message
 
 # Локаторы элементов формы на странице
-EMAIL_INPUT = (By.ID, "login-input") or (By.CSS_SELECTOR, "#login-input")
-PASSWORD_INPUT = (By.ID, "password-input") or (By.CSS_SELECTOR, "#password-input")
-LOGIN_BUTTON = (By.ID, "submit-button") or (By.CSS_SELECTOR, "#submit-button")
+EMAIL_INPUT = (By.ID, "login-input")
+PASSWORD_INPUT = (By.ID, "password-input")
+LOGIN_BUTTON = (By.ID, "submit-button")
 # Селекторы сообщений об ошибке или успехе зависят от верстки страницы QA.GURU
 STATUS_MESSAGE = (By.ID, "error-message")
 
@@ -46,11 +45,9 @@ def driver():
     driver.quit()
 
 
-# Реализация DDT подхода через параметризацию pytest
-@pytest.mark.parametrize(
-    "email, password, expected_text", g_get_valid_params())
-def test_positive_login_form(driver, email, password, expected_text):
-    """Тест кейс, заполнение полей валидными данными"""
+@pytest.fixture()
+def field_fills(driver, email, password):
+    """Фикстура для заполнения полей """
 
     # 1. Открытие тестируемой страницы
     driver.get("https://qa-guru.github.io/one-page-form/login.html")
@@ -69,31 +66,21 @@ def test_positive_login_form(driver, email, password, expected_text):
 
     # 4. Клик по кнопке отправки формы
     submit_button.click()
+    return get_result_message(driver, STATUS_MESSAGE)
 
-    # 5. Ожидание появления ответа (алерта или текста на экране)
-    # ПРИМЕЧАНИЕ: Данный блок адаптируется под логику страницы (JS-alert или блок текста).
-    try:
-        alert = WebDriverWait(driver, 2).until(EC.alert_is_present())
-        alert_text = alert.text
-        alert.accept()
-        actual_result = alert_text
 
-        assert expected_text in actual_result, f"Ожидался успешный вход, но получено: '{actual_result}'"
+@pytest.mark.parametrize("email, password, expected_text", g_get_valid_params())
+def test_positive_login(driver, email, password, expected_text, field_fills):
+    """Тест кейсы заполнения полей валидными данными"""
 
-    # try:
-    #     # Проверяем, появился ли браузерный alert
-    #     alert = WebDriverWait(driver, 2).until(EC.alert_is_present())
-    #     alert_text = alert.text
-    #     alert.accept()
-    #     actual_result = alert_text
-    # except:
-    #     # Если алерта нет, ищем текст ошибки на самой странице
-    #     actual_result = driver.find_element(*STATUS_MESSAGE).text
-    #
-    # # 6. Проверка результата (Assertion)
-    # if scenario_type == "positive":
-    #     assert expected_text in actual_result, f"Ожидался успешный вход, но получено: '{actual_result}'"
-    # else:
-    #     assert expected_text in actual_result or driver.current_url != "success_url", \
-    #         f"Форма пропустила некорректные данные: Email='{email}', Pass='{password}'"
+    actual_result = field_fills
+    assert expected_text in actual_result, f"Ожидался успешный вход, но получено: '{actual_result}'"
 
+
+@pytest.mark.parametrize("email, password, expected_text", g_get_invalid_params())
+def test_negative_login(driver, email, password, expected_text, field_fills):
+    """Тесты кейсы заполнения полей невалидными данными """
+
+    actual_result = field_fills
+    assert expected_text in actual_result or driver.current_url != "success_url", \
+        f"Форма пропустила некорректные данные: Email='{email}', Pass='{password}'"
