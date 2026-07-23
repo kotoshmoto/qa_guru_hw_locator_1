@@ -45,9 +45,8 @@ def driver():
     driver.quit()
 
 
-@pytest.fixture()
 def field_fills(driver, email, password):
-    """Фикстура для заполнения полей """
+    """Функция заполнения полей """
 
     # 1. Открытие тестируемой страницы
     driver.get("https://qa-guru.github.io/one-page-form/login.html")
@@ -70,17 +69,17 @@ def field_fills(driver, email, password):
 
 
 @pytest.mark.parametrize("email, password, expected_text", g_get_valid_params())
-def test_positive_login(driver, email, password, expected_text, field_fills):
+def test_positive_login(driver, email, password, expected_text):
     """Тест кейсы заполнения полей валидными данными"""
 
-    actual_result = field_fills
+    actual_result = field_fills(driver=driver, email=email, password=password)
     assert expected_text in actual_result, f"Ожидался успешный вход, но получено: '{actual_result}'"
 
 
 @pytest.mark.parametrize("email, password, expected_text", g_get_invalid_params())
-def test_negative_login(driver, email, password, expected_text, field_fills):
+def test_negative_login(driver, email, password, expected_text):
     """Тесты кейсы заполнения полей невалидными данными """
 
-    actual_result = field_fills
+    actual_result = field_fills(driver=driver, email=email, password=password)
     assert expected_text in actual_result or driver.current_url != "success_url", \
         f"Форма пропустила некорректные данные: Email='{email}', Pass='{password}'"
